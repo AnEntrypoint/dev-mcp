@@ -19,42 +19,47 @@ npx gxe AnEntrypoint/dev-mcp
 
 ## Setup for Claude Code CLI
 
-Add to `~/.claude/config.json` (or create it):
-
-```json
-{
-  "mcpServers": {
-    "dev-server": {
-      "command": "npx",
-      "args": ["gxe", "AnEntrypoint/dev-mcp"]
-    }
-  }
-}
-```
-
-Or use Claude Code settings command:
+Use the `claude mcp` command to add this server:
 
 ```bash
-claude settings
+claude mcp add --transport stdio dev-server npx gxe AnEntrypoint/dev-mcp
 ```
 
-Then add the server config under `mcpServers`.
+This will register the MCP server and make it available in your Claude Code sessions.
+
+### User-wide Installation (Optional)
+
+To make it available in all projects (instead of just current project):
+
+```bash
+claude mcp add --transport stdio dev-server npx gxe AnEntrypoint/dev-mcp -s user
+```
 
 ## Verify Installation
 
-Start Claude Code session:
+List configured MCP servers:
+
+```bash
+claude mcp list
+```
+
+You should see `dev-server` with status `✓ Connected`.
+
+Get server details:
+
+```bash
+claude mcp get dev-server
+```
+
+## Using in Claude Code
+
+Start a Claude Code session:
 
 ```bash
 claude
 ```
 
-Check available tools:
-
-```
-@dev-server start /path/to/project
-```
-
-The MCP server will be automatically spawned when needed.
+The dev-server tools are now available. You can call them directly with paths to your projects.
 
 ## Tool Usage
 
