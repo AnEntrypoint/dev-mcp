@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 class DevServerManager {
   constructor() {
     this.processes = new Map();
-    this.logs = new Map();
+    this.logBuffers = new Map();
     this.startAttempts = new Map();
   }
 
@@ -39,7 +39,7 @@ class DevServerManager {
 
   _spawn(absolute) {
     const logs = [];
-    this.logs.set(absolute, logs);
+    this.logBuffers.set(absolute, logs);
 
     const child = spawn('npm', ['run', 'dev'], {
       cwd: absolute,
@@ -87,8 +87,8 @@ class DevServerManager {
 
   logs(projectPath) {
     const absolute = resolve(projectPath);
-    const logs = this.logs.get(absolute) || [];
-    return logs.join('');
+    const logLines = this.logBuffers.get(absolute) || [];
+    return logLines.join('');
   }
 
   status(projectPath) {
