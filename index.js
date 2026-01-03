@@ -45,7 +45,7 @@ class DevServerManager {
       cwd: absolute,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
-      detached: true,
+      detached: process.platform !== 'win32',
     });
 
     const collectLogs = (data) => {
@@ -69,11 +69,16 @@ class DevServerManager {
     if (!proc) return `No process running for ${absolute}`;
 
     const { child, pid } = proc;
+    const isWindows = process.platform === 'win32';
 
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         try {
-          process.kill(-pid, 'SIGKILL');
+          if (isWindows) {
+            spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
+          } else {
+            process.kill(-pid, 'SIGKILL');
+          }
         } catch (e) {}
         this.processes.delete(absolute);
         this.startAttempts.delete(absolute);
@@ -88,7 +93,11 @@ class DevServerManager {
       });
 
       try {
-        process.kill(-pid, 'SIGTERM');
+        if (isWindows) {
+          spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
+        } else {
+          process.kill(-pid, 'SIGTERM');
+        }
       } catch (e) {}
     });
   }
