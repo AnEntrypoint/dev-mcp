@@ -44,6 +44,7 @@ class DevServerManager {
     const child = spawn('npm', ['run', 'dev'], {
       cwd: absolute,
       stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
     });
 
     const collectLogs = (data) => {
