@@ -41,12 +41,11 @@ class DevServerManager {
     const logs = [];
     this.logBuffers.set(absolute, logs);
 
-    const isWindows = process.platform === 'win32';
     const child = spawn('npm', ['run', 'dev'], {
       cwd: absolute,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
-      detached: !isWindows,
+      detached: true,
     });
 
     const collectLogs = (data) => {
@@ -70,16 +69,11 @@ class DevServerManager {
     if (!proc) return `No process running for ${absolute}`;
 
     const { child, pid } = proc;
-    const isWindows = process.platform === 'win32';
 
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         try {
-          if (isWindows) {
-            spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
-          } else {
-            process.kill(-pid, 'SIGKILL');
-          }
+          process.kill(-pid, 'SIGKILL');
         } catch (e) {}
         this.processes.delete(absolute);
         this.startAttempts.delete(absolute);
@@ -94,11 +88,7 @@ class DevServerManager {
       });
 
       try {
-        if (isWindows) {
-          spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
-        } else {
-          process.kill(-pid, 'SIGTERM');
-        }
+        process.kill(-pid, 'SIGTERM');
       } catch (e) {}
     });
   }
