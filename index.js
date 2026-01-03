@@ -128,7 +128,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'start',
-        description: 'Start npm run dev for a project. Call twice to restart.',
+        description: 'Start npm run dev for a project. Call again to restart.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -142,7 +142,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'stop',
-        description: 'Stop the running development server',
+        description: 'Stop the running development server, no need to stop for restarts',
         inputSchema: {
           type: 'object',
           properties: {
