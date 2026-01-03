@@ -56,6 +56,7 @@ class DevServerManager {
 
     child.stdout.on('data', collectLogs);
     child.stderr.on('data', collectLogs);
+    child.unref();
 
     this.processes.set(absolute, { child, startTime: Date.now(), pid: child.pid });
 
