@@ -41,10 +41,12 @@ class DevServerManager {
     const logs = [];
     this.logBuffers.set(absolute, logs);
 
+    const isWindows = process.platform === 'win32';
     const child = spawn('npm', ['run', 'dev'], {
       cwd: absolute,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
+      detached: !isWindows,
     });
 
     const collectLogs = (data) => {
@@ -56,7 +58,7 @@ class DevServerManager {
     child.stdout.on('data', collectLogs);
     child.stderr.on('data', collectLogs);
 
-    this.processes.set(absolute, { child, startTime: Date.now() });
+    this.processes.set(absolute, { child, startTime: Date.now(), pid: child.pid });
 
     return `Started npm run dev in ${absolute}`;
   }
@@ -67,11 +69,20 @@ class DevServerManager {
 
     if (!proc) return `No process running for ${absolute}`;
 
-    return new Promise((resolve) => {
-      const { child } = proc;
+    const { child, pid } = proc;
+    const isWindows = process.platform === 'win32';
 
+    return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        child.kill('SIGKILL');
+        try {
+          if (isWindows) {
+            spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
+          } else {
+            process.kill(-pid, 'SIGKILL');
+          }
+        } catch (e) {}
+        this.processes.delete(absolute);
+        this.startAttempts.delete(absolute);
         resolve(`Force killed process in ${absolute}`);
       }, 5000);
 
@@ -82,7 +93,13 @@ class DevServerManager {
         resolve(`Stopped process in ${absolute}`);
       });
 
-      child.kill('SIGTERM');
+      try {
+        if (isWindows) {
+          spawn('taskkill', ['/F', '/PID', pid.toString(), '/T']);
+        } else {
+          process.kill(-pid, 'SIGTERM');
+        }
+      } catch (e) {}
     });
   }
 
