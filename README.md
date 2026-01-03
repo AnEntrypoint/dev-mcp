@@ -17,9 +17,9 @@ Run via gxe (clones from GitHub, no installation needed):
 npx gxe AnEntrypoint/dev-mcp
 ```
 
-## Setup
+## Setup for Claude Code CLI
 
-Add to Claude Code `.claude.json`:
+Add to `~/.claude/config.json` (or create it):
 
 ```json
 {
@@ -32,7 +32,29 @@ Add to Claude Code `.claude.json`:
 }
 ```
 
-That's it. MCP tools become available in Claude Code.
+Or use Claude Code settings command:
+
+```bash
+claude settings
+```
+
+Then add the server config under `mcpServers`.
+
+## Verify Installation
+
+Start Claude Code session:
+
+```bash
+claude
+```
+
+Check available tools:
+
+```
+@dev-server start /path/to/project
+```
+
+The MCP server will be automatically spawned when needed.
 
 ## Tool Usage
 
