@@ -32,7 +32,7 @@ This will register the MCP server and make it available in your Claude Code sess
 To make it available in all projects (instead of just current project):
 
 ```bash
-claude mcp add --transport stdio dev-server npx gxe AnEntrypoint/dev-mcp -s user
+claude mcp add dev-server npx -- gxe AnEntrypoint/dev-mcp
 ```
 
 ## Verify Installation
