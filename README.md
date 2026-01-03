@@ -14,3 +14,4 @@ MCP (Model Context Protocol) server for managing development servers. Start, sto
 ```bash
 claude mcp add dev-server -s ser npx -- gxe AnEntrypoint/dev-mcp
 ```
+<img width="644" height="231" alt="image" src="https://github.com/user-attachments/assets/56415f78-8ebe-4b75-86a7-e2ac6b2a0eba" />
