@@ -52,6 +52,7 @@ class DevServerManager {
     const absolute = resolve(projectPath);
     const status = this.status(absolute);
     const logs = this.logs(absolute);
+    this.logBuffers.set(absolute, []);
     return {
       uri: this.getResourceUri(absolute),
       mimeType: 'application/json',
