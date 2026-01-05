@@ -106,7 +106,15 @@ class DevServerManager {
     this.notifySubscribers(absolute);
 
     const uri = this.getResourceUri(absolute);
-    return `Started npm run dev in ${absolute}\n\nSubscribe to resource updates:\nURI: ${uri}\n\nClients can subscribe to this resource to receive live updates of logs and status.`;
+    return `Server started in ${absolute}
+
+Subscribe to resource for live updates:
+  resources/subscribe ${uri}
+
+When you receive a notification, read the resource:
+  resources/read ${uri}
+
+Resource contains status, logs (cleared after each read), and lastUpdated timestamp.`;
   }
 
   async stop(projectPath) {
@@ -225,20 +233,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'logs',
-        description: 'Get output logs from the development server',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            path: {
-              type: 'string',
-              description: 'Path to project directory',
-            },
-          },
-          required: ['path'],
-        },
-      },
-      {
         name: 'status',
         description: 'Get status of the development server',
         inputSchema: {
@@ -278,9 +272,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'stop':
         result = await manager.stop(path);
-        break;
-      case 'logs':
-        result = manager.logs(path);
         break;
       case 'status':
         result = JSON.stringify(manager.status(path), null, 2);
