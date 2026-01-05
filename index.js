@@ -2,7 +2,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -15,6 +15,48 @@ class DevServerManager {
     this.processes = new Map();
     this.logBuffers = new Map();
     this.startAttempts = new Map();
+    this.subscriptions = new Set();
+    this.server = null;
+  }
+
+  setServer(server) {
+    this.server = server;
+  }
+
+  subscribe(projectPath) {
+    const absolute = resolve(projectPath);
+    const uri = `devserver://project/${absolute}`;
+    this.subscriptions.add(uri);
+  }
+
+  unsubscribe(projectPath) {
+    const absolute = resolve(projectPath);
+    const uri = `devserver://project/${absolute}`;
+    this.subscriptions.delete(uri);
+  }
+
+  async notifySubscribers(projectPath) {
+    const absolute = resolve(projectPath);
+    const uri = `devserver://project/${absolute}`;
+    if (this.server && this.subscriptions.has(uri)) {
+      await this.server.sendResourceUpdated({ uri });
+    }
+  }
+
+  getResourceUri(projectPath) {
+    const absolute = resolve(projectPath);
+    return `devserver://project/${absolute}`;
+  }
+
+  buildResourceContent(projectPath) {
+    const absolute = resolve(projectPath);
+    const status = this.status(absolute);
+    const logs = this.logs(absolute);
+    return {
+      uri: this.getResourceUri(absolute),
+      mimeType: 'application/json',
+      text: JSON.stringify({ status, logs, lastUpdated: new Date().toISOString() }, null, 2),
+    };
   }
 
   async start(projectPath) {
@@ -60,7 +102,10 @@ class DevServerManager {
 
     this.processes.set(absolute, { child, startTime: Date.now(), pid: child.pid });
 
-    return `Started npm run dev in ${absolute}`;
+    this.notifySubscribers(absolute);
+
+    const uri = this.getResourceUri(absolute);
+    return `Started npm run dev in ${absolute}\n\nSubscribe to resource updates:\nURI: ${uri}\n\nClients can subscribe to this resource to receive live updates of logs and status.`;
   }
 
   async stop(projectPath) {
@@ -83,6 +128,7 @@ class DevServerManager {
         } catch (e) {}
         this.processes.delete(absolute);
         this.startAttempts.delete(absolute);
+        this.notifySubscribers(absolute);
         resolve(`Force killed process in ${absolute}`);
       }, 5000);
 
@@ -90,6 +136,7 @@ class DevServerManager {
         clearTimeout(timeout);
         this.processes.delete(absolute);
         this.startAttempts.delete(absolute);
+        this.notifySubscribers(absolute);
         resolve(`Stopped process in ${absolute}`);
       });
 
@@ -136,9 +183,14 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {
+        subscribe: true,
+      },
     },
   }
 );
+
+manager.setServer(server);
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -251,6 +303,63 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       isError: true,
     };
   }
+});
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: 'devserver://project/{projectPath}',
+        name: 'Dev Server Status & Logs',
+        description: 'Live status and logs for a development server instance',
+        mimeType: 'application/json',
+      },
+    ],
+  };
+});
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+  const match = uri.match(/^devserver:\/\/project\/(.+)$/);
+
+  if (!match) {
+    throw new Error(`Invalid resource URI: ${uri}`);
+  }
+
+  const projectPath = match[1];
+  const content = manager.buildResourceContent(projectPath);
+
+  return {
+    contents: [content],
+  };
+});
+
+server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+  const { uri } = request.params;
+  const match = uri.match(/^devserver:\/\/project\/(.+)$/);
+
+  if (!match) {
+    throw new Error(`Invalid resource URI: ${uri}`);
+  }
+
+  const projectPath = match[1];
+  manager.subscribe(projectPath);
+
+  return {};
+});
+
+server.setRequestHandler(UnsubscribeRequestSchema, async (request) => {
+  const { uri } = request.params;
+  const match = uri.match(/^devserver:\/\/project\/(.+)$/);
+
+  if (!match) {
+    throw new Error(`Invalid resource URI: ${uri}`);
+  }
+
+  const projectPath = match[1];
+  manager.unsubscribe(projectPath);
+
+  return {};
 });
 
 async function main() {
